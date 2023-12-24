@@ -1,11 +1,13 @@
 import { useWindowSize } from "@react-hook/window-size";
 import React from "react";
-import ForceGraph, {
+import ForceGraph2D, {
   ForceGraphMethods,
   GraphData,
   LinkObject,
   NodeObject
 } from "react-force-graph-2d";
+
+import ForceGraph3D from "react-force-graph-3d";
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 type CustomNodeType = {};
@@ -26,6 +28,12 @@ type ScrapedGraph = {
 };
 
 export default function App() {
+  let ForceGraph = ForceGraph2D;
+  if (window.location.hash === "#3D") {
+    // @ts-ignore you didnt see anything
+    ForceGraph = ForceGraph3D;
+  }
+
   const [origGraph, setOrigGraph] = React.useState<ScrapedGraph | undefined>(
     undefined
   );
@@ -84,8 +92,16 @@ export default function App() {
     const node = graphData?.nodes.find((x) => x.id === domain);
     if (node == null) return;
     setSelected(node.id as string);
-    graphRef.current?.centerAt(node.x!, node.y!, 1000);
-    graphRef.current?.zoom(8, 1000);
+
+    if (ForceGraph === ForceGraph2D) {
+      graphRef.current?.centerAt(node.x!, node.y!, 1000);
+      graphRef.current?.zoom(8, 1000);
+    } else {
+      // @ts-expect-error 3D only method
+      graphRef.current?.cameraPosition(
+        {x: node.x, y: (node.y ?? 0) + 200, z: node.z}, node, 1000
+      );
+    }
     setSeparation(null);
   }
 
@@ -184,6 +200,22 @@ export default function App() {
         <datalist id="domains">
           {graphData?.nodes.map((x) => <option key={x.id} value={x.id} />)}
         </datalist>
+        <div>
+          <input
+            type="checkbox"
+            checked={window.location.hash === "#3D"}
+            onChange={(e) => {
+              if (e.target.checked) {
+                window.location.hash = "#3D";
+                window.location.reload();
+              } else {
+                window.location.hash = "";
+                window.location.reload();
+              }
+            }}
+          />
+          <span>Enable 3D</span>
+        </div>
         <input
           type="range"
           min="0"
